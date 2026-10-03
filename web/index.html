@@ -1,0 +1,309 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta
+      http-equiv="Content-Security-Policy"
+      content="default-src 'none'; script-src 'self'; style-src 'self'; worker-src 'self'; connect-src 'none'; img-src 'none'; font-src 'none'; object-src 'none'; base-uri 'none'; form-action 'none'"
+    />
+    <meta
+      name="description"
+      content="Inspect exactly how a CSV join changes totals, with local processing and record-level evidence."
+    />
+    <title>Join Impact · 結合前に、数字の変化を知る</title>
+    <link rel="stylesheet" href="./styles.css" />
+    <script type="module" src="./app.js"></script>
+  </head>
+  <body>
+    <a class="skip" href="#workspace" data-i18n="skip">監査ツールへ</a>
+    <header class="masthead wrap">
+      <a class="wordmark" href="#"
+        ><span class="logo" aria-hidden="true">j↗</span>join impact<span
+          class="version"
+          >0.1</span
+        ></a
+      >
+      <div class="header-end">
+        <span class="local-badge" data-i18n="local">端末内で処理</span
+        ><label class="sr-only" for="language">Language / 言語</label
+        ><select id="language">
+          <option value="ja">日本語</option>
+          <option value="en">English</option>
+        </select>
+      </div>
+    </header>
+    <main class="wrap">
+      <section class="hero" aria-labelledby="hero-title">
+        <div>
+          <p class="eyebrow" data-i18n="eyebrow">
+            CSV JOIN · MEASURE IMPACT AUDIT
+          </p>
+          <h1 id="hero-title" data-i18n="title">
+            結合前に、<br />数字の変化を知る。
+          </h1>
+          <p class="hero-copy" data-i18n="intro">
+            CSVの結合で、合計が増える・消える理由を。集計値から原因のレコードまで、ひとつながりに確認できます。
+          </p>
+          <p class="privacy" data-i18n="privacy">
+            実行時はブラウザー内だけで処理。CSVの送信、外部API、解析トラッキングはありません。
+          </p>
+        </div>
+        <aside class="hero-example" aria-label="Illustrative sample">
+          <span class="tiny" data-i18n="preview"
+            >重複キーがあると？ · サンプル</span
+          >
+          <div class="preview-flow">
+            <span>160<small data-i18n="originalShort">元の合計</small></span
+            ><span class="arrow" aria-hidden="true">→</span
+            ><span class="accent"
+              >310<small data-i18n="joinedShort">結合後の合計</small></span
+            >
+          </div>
+          <div class="mini-rule"></div>
+          <p data-i18n="previewNote">
+            行が増えれば、金額も複製される。見つけたいのは、その原因です。
+          </p>
+        </aside>
+      </section>
+      <div class="sample-bar">
+        <div>
+          <strong data-i18n="try">まずは、サンプルで</strong
+          ><span data-i18n="sampleSafe"
+            >架空のデータを読み込み、監査します</span
+          >
+        </div>
+        <div class="button-row">
+          <button
+            id="sample-default"
+            class="small-button"
+            data-i18n="sampleDefault"
+          >
+            160 → 310</button
+          ><button
+            id="sample-cancel"
+            class="small-button"
+            data-i18n="sampleCancel"
+          >
+            増減の相殺</button
+          ><button
+            id="sample-unicode"
+            class="small-button"
+            data-i18n="sampleUnicode"
+          >
+            文字の正規化
+          </button>
+        </div>
+      </div>
+      <section
+        id="workspace"
+        class="workspace"
+        tabindex="-1"
+        aria-labelledby="input-title"
+      >
+        <div class="section-head">
+          <div>
+            <p class="step" data-i18n="step1">01 / INPUT</p>
+            <h2 id="input-title" data-i18n="inputs">2つのCSVを用意する</h2>
+          </div>
+          <button id="swap" class="text-button" data-i18n="swap">
+            左右を入れ替える ⇄
+          </button>
+        </div>
+        <div class="input-grid">
+          <div class="input-card">
+            <div class="input-heading">
+              <label for="left" data-i18n="left">左のCSV · 集計するデータ</label
+              ><span class="side-tag">L</span>
+            </div>
+            <p data-i18n="leftHint">結合前の金額・数量などを含むテーブル</p>
+            <label class="file-label" for="left-file" data-i18n="chooseFile"
+              >CSVファイルを選択</label
+            ><input
+              id="left-file"
+              type="file"
+              accept=".csv,.tsv,.txt,text/csv,text/tab-separated-values,text/plain"
+            />
+            <p id="left-file-note" class="file-note" aria-live="polite"></p>
+            <textarea
+              id="left"
+              spellcheck="false"
+              aria-describedby="left-info"
+              placeholder="customer_id,amount&#10;A,100&#10;B,50&#10;C,10"
+            ></textarea>
+            <div class="input-bottom">
+              <label for="left-delimiter" data-i18n="delimiter"
+                >区切り文字</label
+              ><select id="left-delimiter">
+                <option value="," data-i18n="comma">カンマ</option>
+                <option value="tab" data-i18n="tab">タブ</option>
+                <option value=";" data-i18n="semicolon">セミコロン</option>
+              </select>
+            </div>
+            <p id="left-info" class="parse-note" aria-live="polite"></p>
+          </div>
+          <div class="input-card">
+            <div class="input-heading">
+              <label for="right" data-i18n="right"
+                >右のCSV · 対応させるデータ</label
+              ><span class="side-tag">R</span>
+            </div>
+            <p data-i18n="rightHint">
+              キーの一致で左の各レコードと対応するテーブル
+            </p>
+            <label class="file-label" for="right-file" data-i18n="chooseFile"
+              >CSVファイルを選択</label
+            ><input
+              id="right-file"
+              type="file"
+              accept=".csv,.tsv,.txt,text/csv,text/tab-separated-values,text/plain"
+            />
+            <p id="right-file-note" class="file-note" aria-live="polite"></p>
+            <textarea
+              id="right"
+              spellcheck="false"
+              aria-describedby="right-info"
+              placeholder="customer_id,segment&#10;A,retail&#10;A,online&#10;B,retail&#10;B,online"
+            ></textarea>
+            <div class="input-bottom">
+              <label for="right-delimiter" data-i18n="delimiter"
+                >区切り文字</label
+              ><select id="right-delimiter">
+                <option value="," data-i18n="comma">カンマ</option>
+                <option value="tab" data-i18n="tab">タブ</option>
+                <option value=";" data-i18n="semicolon">セミコロン</option>
+              </select>
+            </div>
+            <p id="right-info" class="parse-note" aria-live="polite"></p>
+          </div>
+        </div>
+        <p class="limits" data-i18n="limits">
+          UTF-8 · 各4 MiB / 40,000行 /
+          64列まで。ヘッダー必須。ファイルの改行は保持し、テキストを編集するとブラウザーが改行をLFに変換します。
+        </p>
+        <div class="section-head policy-heading">
+          <div>
+            <p class="step" data-i18n="step2">02 / JOIN POLICY</p>
+            <h2 data-i18n="policy">結合のルールを明示する</h2>
+          </div>
+        </div>
+        <div class="policy-grid">
+          <div class="mapping-panel">
+            <div class="field-inline">
+              <label for="key-count" data-i18n="keys">結合キー</label
+              ><select id="key-count">
+                <option value="1">1</option>
+                <option value="2">2</option>
+                <option value="3">3</option>
+              </select>
+            </div>
+            <div id="key-mappings"></div>
+            <label for="measure" data-i18n="measure">集計する左の列</label
+            ><select id="measure" aria-describedby="decimal-note"></select>
+            <p id="decimal-note" class="help" data-i18n="decimalNote">
+              小数は正確に計算。空欄・無効値は除外して件数を表示します。通貨記号・指数・桁区切りは使えません。
+            </p>
+          </div>
+          <div class="policy-panel">
+            <label for="join" data-i18n="joinLabel">結合方法</label
+            ><select id="join">
+              <option value="left" data-i18n="leftJoin">
+                LEFT · 左の全レコードを残す
+              </option>
+              <option value="inner" data-i18n="innerJoin">
+                INNER · 一致したレコードだけ残す
+              </option></select
+            ><label for="blank" data-i18n="blankLabel">空欄キーの扱い</label
+            ><select id="blank">
+              <option value="never" data-i18n="blankNever">一致させない</option>
+              <option value="match" data-i18n="blankMatch">
+                空欄同士を一致させる
+              </option></select
+            ><label for="normalization" data-i18n="normalizeLabel"
+              >正規化との比較（任意）</label
+            ><select id="normalization">
+              <option value="exact" data-i18n="exact">完全一致のみ</option>
+              <option value="trim" data-i18n="trim">前後の空白を除去</option>
+              <option value="nfc" data-i18n="nfc">Unicode NFC</option>
+              <option value="trim-nfc" data-i18n="trimNfc">
+                空白除去 + Unicode NFC
+              </option>
+            </select>
+            <p class="help" data-i18n="keyNote">
+              大文字・小文字は区別。NULLは文字列。複合キーの一部が空欄なら空欄キーとして扱います。
+            </p>
+          </div>
+        </div>
+        <div class="run-bar">
+          <div class="button-row">
+            <button id="audit" class="primary" data-i18n="audit">
+              結合の影響を監査する ↗</button
+            ><button id="cancel" class="secondary" hidden data-i18n="cancel">
+              中止
+            </button>
+          </div>
+          <p id="status" role="status" aria-live="polite"></p>
+        </div>
+        <p id="error" class="error" role="alert" hidden></p>
+      </section>
+      <section id="empty" class="empty">
+        <span aria-hidden="true">↳</span>
+        <div>
+          <h2 data-i18n="emptyTitle">合計の変化には、理由があります</h2>
+          <p data-i18n="emptyBody">
+            CSVと結合ルールを選ぶと、正確な合計・影響件数・原因レコードがここに表示されます。
+          </p>
+        </div>
+      </section>
+      <section id="results" hidden tabindex="-1" aria-labelledby="result-title">
+        <div class="section-head">
+          <div>
+            <p class="step" data-i18n="step3">03 / IMPACT REPORT</p>
+            <h2 id="result-title" data-i18n="resultTitle">
+              数字の変化を、レコードまで。
+            </h2>
+            <p id="report-context"></p>
+          </div>
+          <button id="download" class="secondary" data-i18n="download">
+            JSONを保存 ↓
+          </button>
+        </div>
+        <div id="report-body"></div>
+        <p class="export-note" data-i18n="exportNote">
+          JSONにはキー・金額のサンプルと入力のSHA-256が含まれます。共有前に内容を確認してください。
+        </p>
+      </section>
+      <section class="method">
+        <h2 data-i18n="methodTitle">何を、どう数える？</h2>
+        <div class="method-grid">
+          <div>
+            <strong data-i18n="method1Title"
+              >元の合計 → 残存1回 → 結合後</strong
+            >
+            <p data-i18n="method1">
+              未一致で消えた金額と、重複で増えた金額を分離。正負が相殺しても、影響件数と絶対値で見逃しません。
+            </p>
+          </div>
+          <div>
+            <strong data-i18n="method2Title">レコード番号と物理行</strong>
+            <p data-i18n="method2">
+              レコード番号はヘッダーを1として数えます。引用符内に改行があるCSVでは物理行番号と異なります。
+            </p>
+          </div>
+          <div>
+            <strong data-i18n="method3Title">結合を実体化せずに監査</strong>
+            <p data-i18n="method3">
+              キーごとの件数から正確に計算。証拠のサンプルだけに表示上限があり、監査対象を黙って切り捨てません。
+            </p>
+          </div>
+        </div>
+      </section>
+    </main>
+    <footer class="wrap">
+      <span>join impact · 0.1.0</span
+      ><span data-i18n="footer"
+        >結果は記述的な比較です。データの正しさや最適な結合方法を保証しません。</span
+      >
+    </footer>
+  </body>
+</html>

@@ -1,0 +1,5 @@
+customer,amount,note
+001,100,First order
+001,50,Second order
+002,-20,Refund
+003,30,Unmatched customer

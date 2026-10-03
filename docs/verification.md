@@ -1,6 +1,6 @@
 # Verification status
 
-This file distinguishes observed checks from pending checks. It will be updated when the release is frozen and when publication CI is verified.
+This file distinguishes observed checks from pending checks. The initial published revision passed CI; the focused mobile presentation correction below requires its own exact-commit verification.
 
 ## Local environment
 
@@ -18,7 +18,13 @@ Python stdlib SQLite materializes supported small joins; Python Decimal computes
 
 ## Browser gate and environment limit
 
-The source includes 36 real Playwright Chromium scenarios, screenshot capture, and machine-readable results. The scenarios and screenshots are authored but not executed/generated locally. The UI worker and report-shape validator also passed syntax and real-engine integration checks; these do not replace browser execution. This cloud execution sandbox blocks the required local Chromium socket/localhost path. That restriction is not bypassed. Local real-browser execution and manual screenshot inspection are **not claimed**.
+The initial published commit `c47794706614026e21b8d8adee71c1ad5c4c8fa1` passed [GitHub CI run 37117292304](https://github.com/Masanori-Spec/join-impact/actions/runs/37117292304): all four Node 22/24 × UTC/Asia-Tokyo unit jobs passed 939 tests, and the sandbox-enabled Chromium job passed 36 browser scenarios. Its downloaded `results.json` reports zero failures and zero uncaught errors.
+
+The downloaded desktop English and mobile Japanese/English screenshots were visually inspected. The desktop layout was coherent, and both 390-pixel mobile pages fit the viewport, but the comparison table's 420-pixel minimum width clipped the right-hand header inside its horizontal scroll container. The existing whole-page overflow check did not detect that inner-container defect.
+
+The follow-up correction is limited to mobile comparison-table wrapping and regression assertions: all three headers and cell contents must fit the visible comparison container without horizontal scrolling, in both languages and with long exact-decimal values. This correction has passed local formatting, syntax, build, and non-browser checks, but its new CI screenshots and browser assertions remain pending until a new exact-commit run completes. Do not treat the initial screenshot review as a visual pass for the corrected revision.
+
+This cloud execution sandbox blocks the required local Chromium socket/localhost path. That restriction is not bypassed. No local real-browser execution is claimed. Screenshot inspection here uses downloaded CI artifacts, not a locally launched browser.
 
 The GitHub browser job uses `ubuntu-22.04`, sandbox-enabled Chromium, and a localhost static server. The runner choice follows a prior project's observed Ubuntu 24 headless-shell startup failure before test execution and successful Ubuntu 22 execution; it is not a claim that Ubuntu 24 is universally incompatible. The `ubuntu-22.04` GitHub hosted runner is [scheduled for retirement on **2027-04-17**](https://github.com/actions/runner-images/issues/14254); migrate and revalidate before that date. An exact-commit CI pass is required before calling the browser suite verified. Screenshots saved by CI are evidence artifacts, not a manual visual review unless their pixels are actually inspected.
 

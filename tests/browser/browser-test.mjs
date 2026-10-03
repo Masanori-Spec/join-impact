@@ -870,6 +870,41 @@ await test("bounded evidence discloses sampling without truncating audit totals"
 await test(
   "mobile layout both languages and long keys fit viewport",
   async (page) => {
+    async function assertComparisonFits() {
+      const fit = await page
+        .locator(".comparison .table-wrap")
+        .evaluate((wrapper) => {
+          const bounds = wrapper.getBoundingClientRect();
+          return {
+            scrolls: wrapper.scrollWidth > wrapper.clientWidth + 1,
+            headers: [...wrapper.querySelectorAll("th")].map((header) => {
+              const cell = header.getBoundingClientRect();
+              return {
+                text: header.textContent,
+                fits:
+                  cell.left >= bounds.left - 1 &&
+                  cell.right <= bounds.right + 1 &&
+                  header.scrollWidth <= header.clientWidth + 1,
+              };
+            }),
+            cellsFit: [...wrapper.querySelectorAll("td")].every(
+              (cell) => cell.scrollWidth <= cell.clientWidth + 1,
+            ),
+          };
+        });
+      assert.equal(
+        fit.scrolls,
+        false,
+        "comparison needs no horizontal scrolling",
+      );
+      assert.equal(fit.headers.length, 3);
+      assert.ok(
+        fit.headers.every((header) => header.fits),
+        "all comparison headers are fully inside the visible container",
+      );
+      assert.ok(fit.cellsFit, "comparison values wrap within their cells");
+      return fit;
+    }
     await setup(page, "ja");
     await page.locator("#sample-unicode").click();
     await ready(page);
@@ -895,6 +930,11 @@ await test(
         assert.ok(box.x >= 0 && box.x + box.width <= 390, `${id} fits`);
         assert.ok(box.height >= 40, `${id} has usable height`);
       }
+      const comparison = await assertComparisonFits();
+      assert.equal(
+        comparison.headers[2].text,
+        language === "ja" ? "選択した処理" : "Selected cleanup",
+      );
       await page.screenshot({
         path: `${artifactDir}/mobile-report-${language}.png`,
         fullPage: true,
@@ -904,11 +944,17 @@ await test(
     const request = {
       leftText: `id,amount\n${key},999999999999999999999999999999\n`,
       rightText: `id\n${key}\n${key}\n`,
-      options: { ...defaults.options, leftKeys: ["id"], rightKeys: ["id"] },
+      options: {
+        ...defaults.options,
+        leftKeys: ["id"],
+        rightKeys: ["id"],
+        normalization: "trim",
+      },
     };
     await fill(page, request);
     await page.locator("#audit").click();
     await ready(page);
+    await assertComparisonFits();
     await page.locator(".witness summary").click();
     assert.equal(
       await page.evaluate(

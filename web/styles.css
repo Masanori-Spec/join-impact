@@ -1011,6 +1011,20 @@ footer span:first-child {
   .report-box h3 {
     font-size: 1rem;
   }
+  .comparison table {
+    min-width: 0;
+    table-layout: fixed;
+  }
+  .comparison th,
+  .comparison td {
+    padding: 10px 8px;
+    white-space: normal;
+    overflow-wrap: anywhere;
+  }
+  .comparison th:first-child,
+  .comparison td:first-child {
+    width: 44%;
+  }
   .witness-grid {
     grid-template-columns: 1fr;
   }
